@@ -31,7 +31,7 @@ export const getUserData = async (req, res) => {
 
     let user = await User.findById(
       userId,
-      { name: 1, imageUrl: 1, enrolledCourses: 1 }
+      { name: 1, imageUrl: 1, enrolledCourses: 1, role: 1 }
     ).lean();
 
     if (!user) {
@@ -39,6 +39,9 @@ export const getUserData = async (req, res) => {
       
       // Fetch user from Clerk
       const clerkUser = await clerkClient.users.getUser(userId);
+      
+      // Determine role from Clerk's publicMetadata
+      const role = clerkUser.publicMetadata?.role === 'educator' ? 'educator' : 'user';
       
       // Create user in MongoDB
       user = await User.create({
@@ -49,6 +52,7 @@ export const getUserData = async (req, res) => {
         },
         email: clerkUser.emailAddresses[0].emailAddress,
         imageUrl: clerkUser.imageUrl,
+        role: role,
         enrolledCourses: []
       });
       
@@ -60,6 +64,7 @@ export const getUserData = async (req, res) => {
       user: {
         name: user.name,
         imageUrl: user.imageUrl,
+        role: user.role || 'user',
         enrolledCourses: user.enrolledCourses
       }
     });
@@ -94,6 +99,9 @@ export const userEnrolledCourses = async (req, res) => {
       // Fetch user from Clerk
       const clerkUser = await clerkClient.users.getUser(userId);
       
+      // Determine role from Clerk's publicMetadata
+      const role = clerkUser.publicMetadata?.role === 'educator' ? 'educator' : 'user';
+      
       // Create user in MongoDB
       user = await User.create({
         _id: userId,
@@ -103,6 +111,7 @@ export const userEnrolledCourses = async (req, res) => {
         },
         email: clerkUser.emailAddresses[0].emailAddress,
         imageUrl: clerkUser.imageUrl,
+        role: role,
         enrolledCourses: []
       });
       
@@ -147,6 +156,9 @@ export const purchaseCourse = async (req, res) => {
       console.log("User not found in DB for purchase, fetching from Clerk...");
       const clerkUser = await clerkClient.users.getUser(userId);
       
+      // Determine role from Clerk's publicMetadata
+      const role = clerkUser.publicMetadata?.role === 'educator' ? 'educator' : 'user';
+      
       user = await User.create({
         _id: userId,
         name: {
@@ -155,6 +167,7 @@ export const purchaseCourse = async (req, res) => {
         },
         email: clerkUser.emailAddresses[0].emailAddress,
         imageUrl: clerkUser.imageUrl,
+        role: role,
         enrolledCourses: []
       });
       

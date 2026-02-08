@@ -1,6 +1,7 @@
 import EducatorApplication from '../models/EducatorApplication.js';
 import User from '../models/User.js';
 import { sendAdminNotificationEmail, sendApprovalEmail, sendRejectionEmail, sendPendingEmail } from '../config/nodemailer.js';
+import { clerkClient } from '@clerk/express';
 
 // Submit educator application
 export const submitApplication = async (req, res) => {
@@ -214,10 +215,25 @@ export const updateApplicationStatus = async (req, res) => {
 
     // If approved, update user role to educator
     if (status === 'approved') {
+      // Update MongoDB User model
       await User.findOneAndUpdate(
-        { clerkId: application.userId },
-        { role: 'educator' }
+        { _id: application.userId },
+        { role: 'educator' },
+        { upsert: false }
       );
+
+      // CRITICAL: Update Clerk's publicMetadata to grant educator access
+      try {
+        await clerkClient.users.updateUserMetadata(application.userId, {
+          publicMetadata: {
+            role: 'educator'
+          }
+        });
+        console.log(`Successfully updated role to educator for user: ${application.userId}`);
+      } catch (clerkError) {
+        console.error('Failed to update Clerk metadata:', clerkError);
+        // Continue with the process even if Clerk update fails
+      }
 
       // Send approval email
       try {

@@ -31,6 +31,11 @@ const userSchema=mongoose.Schema({
         type:String,
         required:true,
     },
+    role:{
+        type:String,
+        enum:['user','educator'],
+        default:'user'
+    },
     enrolledCourses:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Course'
