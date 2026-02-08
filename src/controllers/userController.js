@@ -80,7 +80,6 @@ export const userEnrolledCourses = async (req, res) => {
     let user = await User.findById(userId)
       .populate({
         path: "enrolledCourses",
-        match: { isPublished: true, isDeleted: false },
         select: "courseTitle courseThumbnail educator courseContent coursePrice discount",
         populate: {
           path: "educator",
@@ -110,11 +109,14 @@ export const userEnrolledCourses = async (req, res) => {
       console.log("User created successfully:", userId);
     }
 
-    console.log(`Enrolled courses for user ${userId}:`, user.enrolledCourses?.length || 0);
+    // Filter out null courses (in case some were deleted from database)
+    const validEnrolledCourses = (user.enrolledCourses || []).filter(course => course !== null);
+    
+    console.log(`Enrolled courses for user ${userId}:`, validEnrolledCourses.length);
 
     res.status(200).json({
       success: true,
-      enrolledCourses: user.enrolledCourses || [],
+      enrolledCourses: validEnrolledCourses,
     });
   } catch (error) {
     console.error("Error in userEnrolledCourses:", error);
